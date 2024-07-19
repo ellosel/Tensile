@@ -123,7 +123,7 @@ def analyzeProblemType( problemType, problemSizeGroups, inputParameters ):
     s = logicAnalyzer.solutions[i]
     s["SolutionIndex"] = i
     s["SolutionNameMin"] = Solution.getNameMin(s, solutionMinNaming)
-    tPrint(1, "(%2u) %s : %s" % (i, Solution.getNameMin(s, solutionMinNaming), Solution.getNameFull(s)))
+    tPrint(1, "(%2u) %s : %s" % (i, Solution.getNameMin(s, solutionMinNaming), s.getNameFull()))
 
   if enableTileSelection:
     validSelectionSolutions = SolutionSelectionLibrary.analyzeSolutionSelection(problemType, selectionFileNameList, \

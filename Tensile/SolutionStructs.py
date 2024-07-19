@@ -49,6 +49,15 @@ import math
 import operator
 import sys
 
+def abbreviateParameterName(name):
+  specialValues = [
+    'MACInstruction' # Conflicts with MatrixInstruction, but _MAD and _FMA should be enough differentiation for the kernel name.
+  ]
+  if name in specialValues: return ''
+  return ''.join([c for c in name if not c.islower()])
+
+parameterNameAbbreviation = {key : abbreviateParameterName(key) for key in ["Kernel"] + list(validParameters.keys())}
+
 ########################################
 # Print a reject message :
 def reject(state, *args):
@@ -1717,12 +1726,19 @@ def isExtractableIndex(ks, index, tc='x'):
 ################################################################################
 class Solution(collections.abc.Mapping):
 
+  def _getRequiredParameters(self):
+    params = {}
+    for key in self:
+      if key in list(validParameters.keys()):
+        params[key] = True
+    return params
+  
   ########################################
   def __init__(self, config):
     self._name = None
     config = deepcopy(config)
-
-    self._state = {}
+    self._state = {}    
+    self.requiredParameters = self._getRequiredParameters()
     # problem type
     if "ProblemType" in config:
       self["ProblemType"] = ProblemType(config["ProblemType"])
@@ -4787,13 +4803,10 @@ class Solution(collections.abc.Mapping):
     return requiredParameters
 
   ########################################
-  @ staticmethod
-  def getNameFull(state):
-    requiredParameters = {}
-    for key in state:
-      if key in list(validParameters.keys()):
-        requiredParameters[key] = True
-    return Solution.getNameMin(state, requiredParameters)
+  def getNameFull(self):
+    if not self.requiredParameters:
+      self.requiredParameters = self._getRequiredParameters()
+    return Solution.getNameMin(self, self.requiredParameters)
 
   ########################################
   # Get Name Min
@@ -4890,13 +4903,8 @@ class Solution(collections.abc.Mapping):
 
   ########################################
   @ staticmethod
-  def getParameterNameAbbreviation( name ):
-    specialValues = {
-      'MACInstruction': '' # Conflicts with MatrixInstruction, but _MAD and _FMA should be enough differentiation for the kernel name.
-    }
-    if name in specialValues: return specialValues[name]
-
-    return ''.join([c for c in name if not c.islower()])
+  def getParameterNameAbbreviation(name):
+    return parameterNameAbbreviation[name]
 
   ########################################
   @ staticmethod
@@ -4956,13 +4964,14 @@ class Solution(collections.abc.Mapping):
   def __getitem__(self, key):
     return self._state[key]
 
-  def __setitem__(self, key, value):
+  def __setitem__(self, key, value):    
     self._name = None
+    self.requiredParameters = {}    
     self._state[key] = value
 
   def __str__(self):
     if self._name is None:
-      self._name = Solution.getNameFull(self._state)
+      self._name = self.getNameFull()
     return self._name
 
   def __repr__(self):

@@ -129,7 +129,7 @@ def writeBenchmarkFiles(stepBaseDir, solutions, problemSizes, \
     for solution in Utils.tqdm(solutions, desc="Finding unique solutions"):
         solutionKernels = solution.getKernels()
         for kernel in solutionKernels:
-            kName = Solution.getNameFull(kernel)
+            kName = kernel.getNameFull()
             if kName not in kernelNames:
                 kernels.append(kernel)
                 kernelNames.add(kName)
