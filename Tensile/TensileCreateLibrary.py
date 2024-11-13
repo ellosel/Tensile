@@ -751,7 +751,7 @@ def writeSourceKernels(
     stop = time.time()
     total = stop - start
     numKernels = len(srcKernelMap)    
-    tPrint(1, f"# Source kernel Writing elapsed time = {total} secs, kps = {float(numKernels)/total}, kernels = {numKernels}")
+    tPrint(2, f"# Source kernel Writing elapsed time = {total} secs, kps = {float(numKernels)/total}, kernels = {numKernels}")
 
     return kernelFiles 
 
@@ -779,7 +779,7 @@ def writeAssemblyKernels(
     stop = time.time()
     total = stop-start
     numKernels = len(kernelsToBuild)
-    tPrint(1, f"# Assembly kernel Building elapsed time = {total} secs, kps = {float(numKernels)/total}, kernels = {numKernels}")    
+    tPrint(2, f"# Assembly kernel Building elapsed time = {total} secs, kps = {float(numKernels)/total}, kernels = {numKernels}")    
 
     return kernelsToBuild # we realy just need the .co files on disk
 
@@ -1031,12 +1031,10 @@ def run(
     kernelMinNaming,
     logicFiles,
 ):
-    procnum = os.getpid()
     libraryLogics = parseLibraryLogicFiles(logicFiles, capabilities)
 
     solns = list(generateSolutions(libraryLogics))
-    kernels = list((s.getKernels() for s in solns))
-    # tPrint(0, f"Library logic file: {logicFiles}, kernels: {kernels}")
+    kernels = list(s.getKernels() for s in solns)
 
     asmDir = Path(os.path.join(Path(outputPath).parent, "build_tmp", Path(outputPath).stem.upper(), "assembly"))
     asmDir.mkdir(parents=True, exist_ok=True)
@@ -1058,8 +1056,6 @@ def run(
           kernelMinNaming,
         )
 
-    #kernelHelperObjs = generateKernelObjectsFromSolutions(kernels)    
-
     asmKernels = [k for k in kernels if k["KernelLanguage"] == "Assembly"]
     if asmKernels:
         asmKernels = writeAssemblyKernels(
@@ -1072,7 +1068,8 @@ def run(
         getAssemblyCodeObjectFiles(coFileMap, outputPath)
 
     return generateKernelObjectsFromSolutions(kernels)
-
+    #return getAssemblyCodeObjectFiles(coFileMap, outputPath)
+    #return os.getpid()
 
 @profile
 def TensileCreateLibrary():
@@ -1115,19 +1112,16 @@ def TensileCreateLibrary():
 
     total = len(logicFiles)
     chunk_size = int(total / numPasses)
-    remainder = total % numPasses    
 
     kho = []
     for p in range(0, numPasses):
+        print(f"pass {p}")
         start = p * chunk_size
-        stop = (p+1) * chunk_size
+        stop = total if p == numPasses - 1 else (p+1) * chunk_size
         rvs = Common.ParallelMap(parallelFunc, logicFiles[start:stop], cpuThreads, "Running TCL...", multiArg=False)
-        for ko in rvs:
-            kho.extend(ko)
-    if remainder:
-        rvs = Common.ParallelMap(parallelFunc, logicFiles[-remainder:], cpuThreads, "Running TCL...", multiArg=False)
-        for ko in rvs:
-            kho.extend(ko)
+        for rv in rvs:
+            kho.extend(rv)
+            print(f"processing {rv}")
 
     # make into a function?
     kernelsCpp = Path(outputPath) / "Kernels.cpp"
