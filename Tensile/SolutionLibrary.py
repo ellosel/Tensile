@@ -246,10 +246,19 @@ class PredicateLibrary:
         for row in self.rows:
             row["library"].remapSolutionIndices(indexMap)
 
+    def __repr__(self) -> str:
+        return str(self.rows)
+
 
 class MasterSolutionLibrary:
     StateKeys = ["solutions", "library"]
     ArchitectureSet = set()
+
+    def __init__(self, solutions, library, version=None):
+        self.lazyLibraries = {}
+        self.solutions = solutions
+        self.library = library
+        self.version = version
 
     @classmethod
     def ArchitectureIndexMap(cls, architectureName: str) -> int:
@@ -275,12 +284,19 @@ class MasterSolutionLibrary:
             if archString is not None:
                 archLiteral = archString.group(0)
                 archval = (int(archLiteral, 16) << 18)
+
+        # TODO(@bstefanuk) this section of code needs to be removed when dealing with
+        # parallel processing since each process may operate on multiple fallbacks that
+        # match a problem type.
+
         # Check for duplicate architecture values
-        if archval >= 0 and not archval in cls.ArchitectureSet:
-            cls.ArchitectureSet.add(archval)
-        else:
-            tPrint(1, f"ERROR: Duplicate architecture value {archval} for {architectureName}, with arch set {cls.ArchitectureSet}")
-            raise RuntimeError("ERROR in architecture solution index mapping.")
+        # if archval >= 0 and not archval in cls.ArchitectureSet:
+        #     cls.ArchitectureSet.add(archval)
+        # else:
+        #     tPrint(1, f"ERROR: Duplicate architecture value {archval} for {architectureName}, with arch set {cls.ArchitectureSet}")
+        #     raise RuntimeError("ERROR in architecture solution index mapping.")
+
+        cls.ArchitectureSet.add(archval)
         return archval
 
     @classmethod
@@ -455,10 +471,10 @@ class MasterSolutionLibrary:
         library = None
         placeholderName = "TensileLibrary"
         placeholderLibrary = None
-        for libName in reversed(libraryOrder):
-            library, placeholderName = libName(origData, problemType, allSolutions, library,
+        for updateNameFunc in reversed(libraryOrder):
+            library, placeholderName = updateNameFunc(origData, problemType, allSolutions, library,
                                                placeholderName)
-            if libName == placeholder:
+            if updateNameFunc == placeholder:
                 placeholderLibrary = library
 
         solutions = {s.index: s for s in allSolutions}
@@ -485,12 +501,6 @@ class MasterSolutionLibrary:
         solutionMap = {s.index: s for s in solutionObjs}
 
         return cls(solutionMap, library)
-
-    def __init__(self, solutions, library, version=None):
-        self.lazyLibraries = {}
-        self.solutions = solutions
-        self.library = library
-        self.version = version
 
     def state(self):
         rv = {
@@ -598,6 +608,9 @@ class MasterSolutionLibrary:
         self.library.merge(other.library)
 
         return curIndex  #Next unused index
+
+    def __repr__(self) -> str:
+        return str(self.library)
 
     @property
     def cpp_base_class(self):
