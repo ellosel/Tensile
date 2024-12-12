@@ -732,7 +732,7 @@ def writeKernels(
     )
 
     kernels = markDuplicateKernels(kernels, kernelWriterAssembly)
-
+    total = len(kernels)
     kIter = zip(
         kernels,
         itertools.repeat(kernelWriterSource),
@@ -814,7 +814,7 @@ def writeKernels(
 
     Common.popWorkingPath()  # build_tmp
 
-    return codeObjectFiles, kernels, solutions
+    return codeObjectFiles, kernels, solutions, total
 
 
 ##############################################################################
@@ -1371,7 +1371,7 @@ def writeBenchmarkClientFiles(libraryWorkingPath, tensileSourcePath, solutions, 
     )
 
     # write solution, kernels and CMake
-    codeObjectFiles, kernels, solutions = writeKernels(
+    codeObjectFiles, kernels, solutions, _ = writeKernels(
         libraryWorkingPath,
         cxxCompiler,
         globalParameters,
@@ -1651,7 +1651,7 @@ def writeMasterFile(
 ################################################################################
 @profile
 def TensileCreateLibrary():
-
+    start = time.time()
     tPrint(3, "Arguments: %s" % sys.argv)
     args = parseArguments()
 
@@ -1764,7 +1764,7 @@ def TensileCreateLibrary():
     for fileName in staticFiles:
         shutil.copy(os.path.join(globalParameters["SourcePath"], fileName), outputPath)
 
-    codeObjectFiles, kernels, solutions = writeKernels(
+    codeObjectFiles, kernels, solutions, total = writeKernels(
         outputPath,
         cxxCompiler,
         args,
@@ -1823,3 +1823,8 @@ def TensileCreateLibrary():
     tPrint(1, "# Tensile Library Writer DONE")
     tPrint(1, HR)
     tPrint(1, "")
+    stop = time.time()
+
+    tPrint(1, f"Total time (s): {(stop-start):3.2f}")
+    tPrint(1, f"Total kernels processed: {total}")
+    tPrint(1, f"Kernels processed per second: {(total/(stop-start)):3.2f}")
