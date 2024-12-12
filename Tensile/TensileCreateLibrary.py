@@ -545,6 +545,8 @@ def writeKernels(outputPath, CxxCompiler, problemTypes, solutions, kernels, kern
   for rel in removeResults:
       results.remove(rel)
 
+  total = len(kernels)
+
   kernelFiles += buildKernelSourceAndHeaderFiles(results, outputPath, kernelsWithBuildErrs)
 
   kernelsToBuild = list(kernels)
@@ -619,7 +621,7 @@ def writeKernels(outputPath, CxxCompiler, problemTypes, solutions, kernels, kern
 
   Common.popWorkingPath() # build_tmp
 
-  return codeObjectFiles
+  return codeObjectFiles, total
 
 ##############################################################################
 # Min Naming / Solution and Kernel Writers
@@ -987,7 +989,7 @@ def writeBenchmarkClientFiles(libraryWorkingPath, tensileSourcePath, solutions, 
 
   # write solution, kernels and CMake
   problemType = solutions[0]["ProblemType"]
-  codeObjectFiles = writeKernels( \
+  codeObjectFiles, total = writeKernels( \
     libraryWorkingPath, cxxCompiler, [problemType], solutions, kernels, kernelsBetaOnly, \
     kernelWriterSource, kernelWriterAssembly, errorTolerant=True )
 
@@ -1065,7 +1067,7 @@ def TensileCreateLibrary():
     (key, value) = par.split("=")
     value = eval(value)
     return (key, value)
-
+  start = time.time()
   print2("Arguments: %s" % sys.argv)
   argParser = argparse.ArgumentParser()
   argParser.add_argument("LogicPath",       help="Path to LibraryLogic.yaml files.")
@@ -1254,7 +1256,7 @@ def TensileCreateLibrary():
       outputPath )
 
   # write solutions and kernels
-  codeObjectFiles = writeKernels(outputPath, CxxCompiler, None, solutions,
+  codeObjectFiles, total = writeKernels(outputPath, CxxCompiler, None, solutions,
                                              kernels, kernelHelperObjs, kernelWriterSource, kernelWriterAssembly)
 
   bothLibSet = set(sourceLibPaths + asmLibPaths)
@@ -1346,3 +1348,8 @@ def TensileCreateLibrary():
   print1("# Tensile Library Writer DONE")
   print1(HR)
   print1("")
+
+  stop = time.time()
+  print1(f"Total time (s): {(stop-start):3.2f}")
+  print1(f"Total kernels processed: {total}")
+  print1(f"Kernels processed per second: {(total/(stop-start)):3.2f}")
