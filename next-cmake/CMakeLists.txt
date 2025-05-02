@@ -28,6 +28,7 @@ include(CMakeDependentOption)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(TENSILE_ENABLE_HOST ON CACHE BOOL "Build device library.")
+set(TENSILE_ENABLE_DEVICE ON CACHE BOOL "Build device libraries.")
 set(TENSILE_ENABLE_CLIENT ON CACHE BOOL "Build client app.")
 set(TENSILE_BUILD_TESTING ON CACHE BOOL "Build host library tests.")
 set(TENSILE_ENABLE_HIP ON CACHE BOOL "")
@@ -113,6 +114,10 @@ if(TENSILE_ENABLE_HOST)
     target_compile_definitions(tensile-host PUBLIC TENSILE_USE_HIP)
 
     add_subdirectory(host)
+endif()
+
+if(TENSILE_ENABLE_DEVICE)
+    add_subdirectory(device)
 endif()
 
 if(TENSILE_ENABLE_CLIENT)
