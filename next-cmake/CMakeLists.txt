@@ -29,6 +29,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(TENSILE_ENABLE_HOST ON CACHE BOOL "Build device library.")
 set(TENSILE_ENABLE_CLIENT ON CACHE BOOL "Build client app.")
+set(TENSILE_BUILD_TESTING ON CACHE BOOL "Build host library tests.")
 set(TENSILE_ENABLE_HIP ON CACHE BOOL "")
 set(TENSILE_BUILD_SHARED OFF CACHE BOOL "")
 set(TENSILE_ENABLE_MSGPACK ON CACHE BOOL "")
@@ -139,4 +140,25 @@ if(TENSILE_ENABLE_CLIENT)
             tensile-host
     )
     add_subdirectory(client)
+endif()
+
+if(TENSILE_BUILD_TESTING)
+    find_package(Boost REQUIRED COMPONENTS filesystem)
+    find_package(GTest REQUIRED)
+    add_executable(tensile-tests)
+    target_link_libraries(tensile-tests 
+        PRIVATE
+            Boost::filesystem
+            GTest::gtest
+            tensile-host
+            hip::host
+            hip::device
+    )
+
+    target_include_directories(tensile-tests
+        PRIVATE
+            $<BUILD_INTERFACE:${TENSILE_SOURCE_TREE}/../../HostLibraryTests/testlib/include>
+            $<BUILD_INTERFACE:${TENSILE_SOURCE_TREE}/client/include>
+    )
+    add_subdirectory(tests)
 endif()
