@@ -21,8 +21,12 @@
 #
 # ########################################################################
 
-set(TENSILE_LOGIC_DIR "${PROJECT_SOURCE_DIR}/../rocBLAS/library/src/blas3/Tensile/Logic/asm_full" CACHE STRING "Path to directory containing logic files")
-set(TENSILE_BUILD_OPTS ${TENSILE_BUILD_OPTS} "--architecture=${GPU_TARGETS}")
+set(TENSILE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/library" CACHE STRING "Path to output tensile device libraries")
+set(TENSILE_LOGIC_DIR "${tensile_SOURCE_DIR}/../../rocBLAS/library/src/blas3/Tensile/Logic/asm_full" CACHE STRING "Path to directory containing logic files")
+set(TENSILE_CODE_OBJECT_VERSION "V4" CACHE STRING "Path to directory containing logic files")
+list(JOIN GPU_TARGETS "$<SEMICOLON>" TENSILE_GPU_TARGETS_SEMI_ESCAPED)
+set(TENSILE_BUILD_OPTS ${TENSILE_BUILD_OPTS} "--code-object-version=${TENSILE_CODE_OBJECT_VERSION}")
+set(TENSILE_BUILD_OPTS ${TENSILE_BUILD_OPTS} "--architecture=\"${TENSILE_GPU_TARGETS_SEMI_ESCAPED}\"")
 set(TENSILE_BUILD_OPTS ${TENSILE_BUILD_OPTS} "--cxx-compiler=${CMAKE_CXX_COMPILER}")
 if(TENSILE_JOBS)
     set(TENSILE_BUILD_OPTS ${TENSILE_BUILD_OPTS} "--jobs=${TENSILE_JOBS}")
@@ -37,14 +41,15 @@ set(TENSILE_CREATE_LIBRARY_COMMAND
     ${CMAKE_CURRENT_BINARY_DIR}
     HIP
 )
-
+set(output_stamp "${CMAKE_CURRENT_BINARY_DIR}/Tensile.stamp")
 add_custom_command(
     COMMENT "Building device libraries..."
     COMMAND ${TENSILE_CREATE_LIBRARY_COMMAND}
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/library"
+    COMMAND ${CMAKE_COMMAND} -E touch "${output_stamp}"
+    OUTPUT "${output_stamp}"
     WORKING_DIRECTORY "${TENSILE_SOURCE_TREE}/../.."
 )
 
 add_custom_target(tensile-device-libraries ALL
-    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/library"
+    DEPENDS "${output_stamp}"
 )
